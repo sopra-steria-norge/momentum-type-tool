@@ -1,7 +1,7 @@
 // UI Controller - Handles all UI interactions and state management
 
 // UI elements
-let phaseSlider, ampSlider, verticalOffsetSlider, marginSlider, falloffSlider;
+let phaseSlider, ampSlider, verticalOffsetSlider, marginDropdown, falloffSlider;
 let playPauseBtn, alignmentCheckbox, shaderModeCheckbox, textInput, fontUploadBtn, fontFile, fontSelect, exportSVGBtn;
 let phaseValue, ampValue, verticalOffsetValue, marginValue, falloffValue;
 let typingInfo;
@@ -13,10 +13,11 @@ let bgPickr, textPickr, colorValue1Picker, colorValue2Picker, colorValue3Picker,
 // Color state
 let backgroundColor = '#000000';
 let textColor = '#ffffff';
-let color1 = '#6C2EA9';
-let color2 = '#1F123C';
-let color3 = '#250844';
-let color4 = '#495C91';
+let color1 = '#261546';
+let color2 = '#481560';
+let color3 = '#422276';
+let color4 = '#7E287E';
+let color5 = '#694F93';
 
 // Text history variables
 let textHistory = [];
@@ -38,7 +39,7 @@ function initUI(initialWords, initialUserHasTyped, initialWdt) {
     phaseSlider = document.getElementById('phaseSlider');
     ampSlider = document.getElementById('ampSlider');
     verticalOffsetSlider = document.getElementById('verticalOffsetSlider');
-    marginSlider = document.getElementById('marginSlider');
+    marginDropdown = document.getElementById('marginDropdown');
     falloffSlider = document.getElementById('falloffSlider');
     playPauseBtn = document.getElementById('playPauseBtn');
     alignmentCheckbox = document.getElementById('alignmentCheckbox');
@@ -83,6 +84,9 @@ function initUI(initialWords, initialUserHasTyped, initialWdt) {
 
     // Set initial state of gradient color pickers based on shader mode
     toggleGradientColorPickers(shaderModeCheckbox.checked);
+
+    // Set initial state of Background/Typography color pickers (opposite of gradient mode)
+    toggleBackgroundColorPickers(!shaderModeCheckbox.checked);
 }
 
 // Setup all event listeners
@@ -100,7 +104,7 @@ function setupEventListeners() {
         updateSliderValues();
     });
 
-    marginSlider.addEventListener('input', () => {
+    marginDropdown.addEventListener('change', () => {
         updateSliderValues();
     });
 
@@ -112,7 +116,11 @@ function setupEventListeners() {
     // Button events
     playPauseBtn.addEventListener('click', () => {
         window.AnimationEngine.togglePlayback();
+        updatePlayPauseButton();
     });
+
+    // Initialize play/pause button icon
+    updatePlayPauseButton();
 
     alignmentCheckbox.addEventListener('change', () => {
         window.RenderPipeline.setTextAlignment(alignmentCheckbox.checked);
@@ -126,6 +134,9 @@ function setupEventListeners() {
 
         // Enable/disable gradient color pickers based on shader mode
         toggleGradientColorPickers(isShaderMode);
+
+        // Disable/enable Background/Typography color pickers (opposite of gradient mode)
+        toggleBackgroundColorPickers(!isShaderMode);
 
         // Trigger re-render if paused
         triggerRenderIfPaused();
@@ -404,6 +415,56 @@ function toggleGradientColorPickers(enabled) {
     }
 }
 
+// Toggle Background/Typography color pickers based on shader mode
+function toggleBackgroundColorPickers(enabled) {
+    const colorRow = document.querySelector('.color-row');
+    if (!colorRow) return;
+
+    // Get Background and Typography color pickers
+    const backgroundPickers = [bgPickr, textPickr];
+    const swapBtn = document.getElementById('swapColorsBtn');
+
+    if (enabled) {
+        // Enable Background/Typography color pickers
+        colorRow.style.opacity = '1';
+        colorRow.style.pointerEvents = 'auto';
+        colorRow.classList.remove('disabled');
+
+        // Enable Pickr instances
+        backgroundPickers.forEach(picker => {
+            if (picker) {
+                picker.enable();
+            }
+        });
+
+        // Enable swap button
+        if (swapBtn) {
+            swapBtn.disabled = false;
+            swapBtn.style.opacity = '1';
+            swapBtn.style.pointerEvents = 'auto';
+        }
+    } else {
+        // Disable Background/Typography color pickers
+        colorRow.style.opacity = '0.3';
+        colorRow.style.pointerEvents = 'none';
+        colorRow.classList.add('disabled');
+
+        // Disable Pickr instances
+        backgroundPickers.forEach(picker => {
+            if (picker) {
+                picker.disable();
+            }
+        });
+
+        // Disable swap button
+        if (swapBtn) {
+            swapBtn.disabled = true;
+            swapBtn.style.opacity = '0.3';
+            swapBtn.style.pointerEvents = 'none';
+        }
+    }
+}
+
 // Swap colors function
 function swapColors() {
     const tempColor = backgroundColor;
@@ -422,12 +483,26 @@ function swapColors() {
     triggerRenderIfPaused();
 }
 
+// Update play/pause button icon based on state
+function updatePlayPauseButton() {
+    if (!playPauseBtn) return;
+    const iconElement = playPauseBtn.querySelector('i');
+    if (!iconElement) return;
+
+    const isPlaying = window.AnimationEngine.getIsPlaying();
+    if (isPlaying) {
+        iconElement.className = 'ph ph-pause';
+    } else {
+        iconElement.className = 'ph ph-play';
+    }
+}
+
 // Update slider value displays
 function updateSliderValues() {
     phaseValue.textContent = getPhaseValue().toFixed(2);
     ampValue.textContent = Math.round(getAmplitudeValue());
     verticalOffsetValue.textContent = getVerticalOffsetValue().toFixed(2);
-    marginValue.textContent = Math.round(getMarginValue());
+    marginValue.textContent = getMarginValue().toFixed(0);
     falloffValue.textContent = getFalloffValue().toFixed(1);
 
     // If animation is paused, trigger a single frame render to show changes
@@ -562,8 +637,16 @@ function getVerticalOffsetValue() {
     return parseFloat(verticalOffsetSlider.value);
 }
 
+// Margin values mapping (arbitrary values for now)
+const MARGIN_VALUES = {
+    small: 120,
+    medium: 200,
+    large: 280
+};
+
 function getMarginValue() {
-    return 140 + parseFloat(marginSlider.value) * 350;
+    const selectedValue = marginDropdown.value;
+    return MARGIN_VALUES[selectedValue] || MARGIN_VALUES.medium;
 }
 
 // Get current state for other modules
@@ -627,7 +710,7 @@ function getColor1Value() {
     const color = hexToRgb(color1);
     if (!color) {
         console.warn('Invalid color1 hex value:', color1, 'using default');
-        return hexToRgb('#6C2EA9'); // Default purple
+        return hexToRgb('#261546'); // Default purple
     }
     return color;
 }
@@ -637,7 +720,7 @@ function getColor2Value() {
     const color = hexToRgb(color2);
     if (!color) {
         console.warn('Invalid color2 hex value:', color2, 'using default');
-        return hexToRgb('#1F123C'); // Default dark purple
+        return hexToRgb('#481560'); // Default dark purple
     }
     return color;
 }
@@ -647,7 +730,7 @@ function getColor3Value() {
     const color = hexToRgb(color3);
     if (!color) {
         console.warn('Invalid color3 hex value:', color3, 'using default');
-        return hexToRgb('#250844'); // Default dark purple
+        return hexToRgb('#422276'); // Default dark purple
     }
     return color;
 }
@@ -657,7 +740,17 @@ function getColor4Value() {
     const color = hexToRgb(color4);
     if (!color) {
         console.warn('Invalid color4 hex value:', color4, 'using default');
-        return hexToRgb('#495C91'); // Default blue
+        return hexToRgb('#7E287E'); // Default blue
+    }
+    return color;
+}
+
+// Get color 5 value
+function getColor5Value() {
+    const color = hexToRgb(color5);
+    if (!color) {
+        console.warn('Invalid color5 hex value:', color5, 'using default');
+        return hexToRgb('#694F93'); // Default purple
     }
     return color;
 }
@@ -711,6 +804,7 @@ window.UIController = {
     getColor2Value,
     getColor3Value,
     getColor4Value,
+    getColor5Value,
     getWords: () => words,
     getUserHasTyped: () => userHasTyped,
     getWdt: () => wdt,
