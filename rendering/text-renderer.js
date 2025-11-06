@@ -236,7 +236,7 @@ class TextRenderer {
                     const currentCharWidth = this.getCharacterWidth(ctx, character, fontSize);
 
                     const angle = phase + additionalPhase + (rowIndex + 1) * rowOffset;
-                    const finalX = charIndex == 0 ? margin : x + ((Math.sin(angle) * .5 + .5) * ampl * 0.1) * oscillationOffset * 1 / row.length * charIndex;
+                    const finalX = charIndex == 0 ? margin : x + ((Math.sin(angle) * .5 + .5) * ampl * 5) * oscillationOffset * 1 / row.length * charIndex;
 
                     characters.push({
                         character: character.toUpperCase(),
@@ -269,7 +269,7 @@ class TextRenderer {
                     const character = row[charIndex];
 
                     const waveAngle = (Math.PI / Math.max(row.length, 1)) * charIndex + phase + additionalPhase + (rowIndex + 1) * rowOffset;
-                    const baseSineValue = Math.sin(waveAngle) * ampl;
+                    const baseSineValue = Math.sin(waveAngle) * ampl * 400;
 
                     let centerAlignmentIntensity;
                     if (row.length > 1) {
@@ -321,10 +321,8 @@ class TextRenderer {
 
     // Render text for export at fixed resolution (1920x1080)
     renderForExport(ctx, words, userHasTyped, animationTime, exportWidth, exportHeight, fillColor) {
-        console.log('[TextRenderer] renderForExport called with dimensions:', exportWidth, 'x', exportHeight);
         const characters = this.calculateCharacterPositions(ctx, words, userHasTyped, animationTime, exportWidth, exportHeight);
 
-        console.log('[TextRenderer] Calculated', characters.length, 'characters for export');
         for (const char of characters) {
             this.renderCharacter(ctx, char.character, char.x, char.y, char.fontSize, char.userHasTyped, fillColor);
         }

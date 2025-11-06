@@ -39,7 +39,6 @@ class RenderPipeline {
         }
 
         // Render everything at fixed 1920x1080 resolution
-        console.log('[RenderPipeline] Rendering at fixed resolution:', fixedDims.width, 'x', fixedDims.height);
         this.backgroundRenderer.renderForExport(internalCtx, fixedDims.width, fixedDims.height, backgroundColor, animationTime);
         this.textRenderer.renderForExport(internalCtx, words, userHasTyped, animationTime, fixedDims.width, fixedDims.height, fillColor);
 
@@ -81,8 +80,6 @@ class RenderPipeline {
             return;
         }
 
-        console.log('[RenderPipeline] Starting renderForExport:', exportWidth, 'x', exportHeight);
-
         // Clear export canvas
         ctx.clearRect(0, 0, exportWidth, exportHeight);
 
@@ -92,11 +89,8 @@ class RenderPipeline {
         const currentText = this.getText();
         const isPlaceholder = this.getIsPlaceholder();
 
-        console.log('[RenderPipeline] Export state - Text:', currentText, 'Placeholder:', isPlaceholder);
-
         // Don't export placeholder content
         if (isPlaceholder) {
-            console.warn('Cannot export placeholder content');
             return;
         }
 
@@ -109,17 +103,13 @@ class RenderPipeline {
         internalCtx.clearRect(0, 0, fixedDims.width, fixedDims.height);
 
         // Render background at fixed resolution
-        console.log('[RenderPipeline] Rendering background...');
         this.backgroundRenderer.renderForExport(internalCtx, fixedDims.width, fixedDims.height, backgroundColor, animationTime);
 
         // Render text at fixed resolution
-        console.log('[RenderPipeline] Rendering text...');
         this.textRenderer.renderForExport(internalCtx, currentText, true, animationTime, fixedDims.width, fixedDims.height, fillColor);
 
         // Copy internal canvas to export canvas
         ctx.drawImage(internalCanvas, 0, 0, fixedDims.width, fixedDims.height, 0, 0, exportWidth, exportHeight);
-
-        console.log('[RenderPipeline] Export render complete');
     }
 
     // Set shader mode

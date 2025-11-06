@@ -76,11 +76,6 @@ async function exportCanvasToMP4({ canvas, durationSec = 15, quality = 'ultra', 
         tempCanvas.height = 1080;
         const tempCtx = tempCanvas.getContext('2d');
 
-        // Get canvas stream
-        console.log('🎥 Getting canvas stream...');
-        const stream = tempCanvas.captureStream(60);
-        console.log('✅ Canvas stream created');
-
         // Set up MediaRecorder - MP4 ONLY
         const mp4MimeTypes = [
             'video/mp4;codecs=avc1.42E01E',
@@ -102,43 +97,99 @@ async function exportCanvasToMP4({ canvas, durationSec = 15, quality = 'ultra', 
 
         console.log('🎬 Selected MIME type:', selectedMime);
 
+        // Render first frame to ensure canvas has content before creating stream
+        window.RenderPipeline.renderForExport(tempCtx, tempCanvas.width, tempCanvas.height, 0);
+        
+        // Wait a bit to ensure frame is rendered
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Get canvas stream AFTER first frame is rendered
+        console.log('🎥 Getting canvas stream...');
+        const stream = tempCanvas.captureStream(60);
+        console.log('✅ Canvas stream created');
+
+        // Check if stream has video tracks
+        const videoTracks = stream.getVideoTracks();
+        if (videoTracks.length === 0) {
+            throw new Error('Canvas stream has no video tracks. Screen recording may be interfering.');
+        }
+        console.log(`📹 Stream has ${videoTracks.length} video track(s)`);
+        
+        // Check track state
+        const videoTrack = videoTracks[0];
+        console.log('📹 Video track state:', {
+            readyState: videoTrack.readyState,
+            enabled: videoTrack.enabled,
+            muted: videoTrack.muted
+        });
+        
+        // Ensure track is enabled
+        if (!videoTrack.enabled) {
+            videoTrack.enabled = true;
+            console.log('✅ Enabled video track');
+        }
+
         const recorder = new MediaRecorder(stream, {
             mimeType: selectedMime,
             videoBitsPerSecond: bitrate
         });
 
+        // Add error handler
+        recorder.onerror = (event) => {
+            console.error('❌ MediaRecorder error:', event.error);
+            throw new Error(`MediaRecorder error: ${event.error?.message || 'Unknown error'}`);
+        };
+
         const chunks = [];
+        let hasReceivedData = false;
+        
         recorder.ondataavailable = (event) => {
             if (event.data.size > 0) {
                 chunks.push(event.data);
-                console.log(`📦 Chunk received: ${event.data.size} bytes`);
+                hasReceivedData = true;
+                console.log(`📦 Chunk received: ${event.data.size} bytes (total chunks: ${chunks.length})`);
             }
         };
 
         // Start recording
         console.log('🚀 Starting recording...');
         recorder.start(100); // Collect data every 100ms
+        
+        // Wait a moment to ensure recording has started
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        if (recorder.state !== 'recording') {
+            throw new Error(`MediaRecorder failed to start. State: ${recorder.state}. Screen recording may be interfering.`);
+        }
+        console.log('✅ Recording started successfully');
 
         // Render animation frames at 60fps
         const fps = 60;
         const totalFrames = Math.floor(durationSec * fps);
-        const frameInterval = 1000 / fps;
+        const frameInterval = 1000 / fps; // ~16.67ms per frame
 
         console.log(`🎬 Rendering ${totalFrames} frames at ${fps} FPS...`);
+
+        const startTime = performance.now();
 
         for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
             const tSec = frameIndex / fps;
 
-            console.log(`📸 Rendering frame ${frameIndex + 1}/${totalFrames} at ${tSec.toFixed(2)}s`);
-
             // Render the animation at this specific time
-            const state = UIController.getCurrentState();
-            const dimensions = window.CanvasManager.getDimensions();
-            const backgroundColor = UIController.getBackgroundColor();
-            const fillColor = UIController.getFillColor();
-
-            // Render frame at export resolution using RenderPipeline
             window.RenderPipeline.renderForExport(tempCtx, tempCanvas.width, tempCanvas.height, tSec);
+
+            // Wait for the frame to be rendered and captured
+            // Use requestAnimationFrame to sync with browser's frame rate
+            await new Promise(resolve => requestAnimationFrame(resolve));
+
+            // Ensure we maintain 60fps timing
+            const elapsed = performance.now() - startTime;
+            const targetTime = frameIndex * frameInterval;
+            const waitTime = Math.max(0, targetTime - elapsed);
+            
+            if (waitTime > 0) {
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            }
 
             const progress = (frameIndex + 1) / totalFrames;
             updateProgress(progress);
@@ -147,16 +198,40 @@ async function exportCanvasToMP4({ canvas, durationSec = 15, quality = 'ultra', 
                 onProgress(progress);
             }
 
-            console.log(`📈 Progress: ${Math.round(progress * 100)}%`);
-
-            // Wait for next frame
-            await new Promise(resolve => setTimeout(resolve, frameInterval));
+            // Log progress every 10% to reduce console spam
+            if (frameIndex % Math.floor(totalFrames / 10) === 0 || frameIndex === totalFrames - 1) {
+                console.log(`📈 Progress: ${Math.round(progress * 100)}%`);
+            }
+            
+            // Check if we're receiving data periodically
+            if (frameIndex > 0 && frameIndex % 60 === 0 && !hasReceivedData) {
+                console.warn('⚠️ No data chunks received yet. Screen recording may be interfering.');
+            }
         }
 
         // Stop recording
         console.log('🏁 Stopping recording...');
-        await new Promise((resolve) => {
-            recorder.onstop = resolve;
+        
+        // Request final data before stopping
+        if (recorder.state === 'recording') {
+            recorder.requestData();
+        }
+        
+        await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('Timeout waiting for recorder to stop'));
+            }, 5000);
+            
+            recorder.onstop = () => {
+                clearTimeout(timeout);
+                resolve();
+            };
+            
+            recorder.onerror = (event) => {
+                clearTimeout(timeout);
+                reject(new Error(`MediaRecorder stop error: ${event.error?.message || 'Unknown error'}`));
+            };
+            
             recorder.stop();
         });
 
@@ -167,12 +242,22 @@ async function exportCanvasToMP4({ canvas, durationSec = 15, quality = 'ultra', 
         console.log('📦 Final blob created:', {
             size: blob.size,
             type: blob.type,
-            chunks: chunks.length
+            chunks: chunks.length,
+            hasReceivedData: hasReceivedData
         });
 
         if (blob.size === 0) {
-            throw new Error('Generated video blob is empty');
+            const errorMsg = hasReceivedData 
+                ? 'Generated video blob is empty despite receiving data chunks. Screen recording may be interfering with MediaRecorder.'
+                : 'No data chunks received. MediaRecorder may not be capturing frames. Screen recording may be interfering.';
+            throw new Error(errorMsg);
         }
+        
+        // Stop all video tracks to free resources
+        videoTracks.forEach(track => {
+            track.stop();
+            console.log('🛑 Stopped video track');
+        });
 
         // Download the file
         console.log('💾 Downloading file...');
