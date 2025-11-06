@@ -79,6 +79,7 @@ class ShaderManager {
         uniforms.set('u_color2', this.gl.getUniformLocation(program, 'u_color2'));
         uniforms.set('u_color3', this.gl.getUniformLocation(program, 'u_color3'));
         uniforms.set('u_color4', this.gl.getUniformLocation(program, 'u_color4'));
+        uniforms.set('u_color5', this.gl.getUniformLocation(program, 'u_color5'));
         uniforms.set('u_falloff', this.gl.getUniformLocation(program, 'u_falloff'));
 
         this.uniforms.set(programName, uniforms);
@@ -199,7 +200,8 @@ class ShaderManager {
             { x: -0.5, y: 0.5 },   // Top Left
             { x: 0.5, y: 0.5 },    // Top Right  
             { x: -0.5, y: -0.5 },  // Bottom Left
-            { x: 0.5, y: -0.5 }    // Bottom Right
+            { x: 0.5, y: -0.5 },   // Bottom Right
+            { x: 0.0, y: 0.0 }     // Center (for 5th color)
         ];
     }
 
@@ -255,29 +257,33 @@ class ShaderManager {
         const color2 = window.UIController.getColor2Value();
         const color3 = window.UIController.getColor3Value();
         const color4 = window.UIController.getColor4Value();
+        const color5 = window.UIController.getColor5Value();
 
         // Check if colors are valid before normalizing
-        let normalizedColor1, normalizedColor2, normalizedColor3, normalizedColor4;
+        let normalizedColor1, normalizedColor2, normalizedColor3, normalizedColor4, normalizedColor5;
 
-        if (!color1 || !color2 || !color3 || !color4) {
-            console.warn('Some colors are null, using defaults:', { color1, color2, color3, color4 });
+        if (!color1 || !color2 || !color3 || !color4 || !color5) {
+            console.warn('Some colors are null, using defaults:', { color1, color2, color3, color4, color5 });
             // Use default colors if any are null
-            const defaultColor1 = color1 || { r: 108, g: 46, b: 169 }; // #6C2EA9
-            const defaultColor2 = color2 || { r: 31, g: 18, b: 60 };   // #1F123C
-            const defaultColor3 = color3 || { r: 37, g: 8, b: 68 };    // #250844
-            const defaultColor4 = color4 || { r: 73, g: 92, b: 145 };  // #495C91
+            const defaultColor1 = color1 || { r: 38, g: 21, b: 70 };   // #261546
+            const defaultColor2 = color2 || { r: 72, g: 21, b: 96 };   // #481560
+            const defaultColor3 = color3 || { r: 66, g: 34, b: 118 };   // #422276
+            const defaultColor4 = color4 || { r: 126, g: 40, b: 126 }; // #7E287E
+            const defaultColor5 = color5 || { r: 105, g: 79, b: 147 }; // #694F93
 
             // Normalize colors from 0-255 to 0-1 range for WebGL
             normalizedColor1 = { r: defaultColor1.r / 255.0, g: defaultColor1.g / 255.0, b: defaultColor1.b / 255.0 };
             normalizedColor2 = { r: defaultColor2.r / 255.0, g: defaultColor2.g / 255.0, b: defaultColor2.b / 255.0 };
             normalizedColor3 = { r: defaultColor3.r / 255.0, g: defaultColor3.g / 255.0, b: defaultColor3.b / 255.0 };
             normalizedColor4 = { r: defaultColor4.r / 255.0, g: defaultColor4.g / 255.0, b: defaultColor4.b / 255.0 };
+            normalizedColor5 = { r: defaultColor5.r / 255.0, g: defaultColor5.g / 255.0, b: defaultColor5.b / 255.0 };
         } else {
             // Normalize colors from 0-255 to 0-1 range for WebGL
             normalizedColor1 = { r: color1.r / 255.0, g: color1.g / 255.0, b: color1.b / 255.0 };
             normalizedColor2 = { r: color2.r / 255.0, g: color2.g / 255.0, b: color2.b / 255.0 };
             normalizedColor3 = { r: color3.r / 255.0, g: color3.g / 255.0, b: color3.b / 255.0 };
             normalizedColor4 = { r: color4.r / 255.0, g: color4.g / 255.0, b: color4.b / 255.0 };
+            normalizedColor5 = { r: color5.r / 255.0, g: color5.g / 255.0, b: color5.b / 255.0 };
         }
 
         // console.log('Original colors (0-255):', color1, color2, color3, color4);
@@ -314,6 +320,7 @@ class ShaderManager {
         gl.uniform3f(uniforms.get('u_color2'), normalizedColor2.r, normalizedColor2.g, normalizedColor2.b);
         gl.uniform3f(uniforms.get('u_color3'), normalizedColor3.r, normalizedColor3.g, normalizedColor3.b);
         gl.uniform3f(uniforms.get('u_color4'), normalizedColor4.r, normalizedColor4.g, normalizedColor4.b);
+        gl.uniform3f(uniforms.get('u_color5'), normalizedColor5.r, normalizedColor5.g, normalizedColor5.b);
 
         // Set falloff uniform
         const falloffValue = window.UIController.getFalloffValue();

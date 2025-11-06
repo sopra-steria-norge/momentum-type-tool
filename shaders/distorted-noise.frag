@@ -8,6 +8,7 @@ uniform vec3 u_color1;
 uniform vec3 u_color2;
 uniform vec3 u_color3;
 uniform vec3 u_color4;
+uniform vec3 u_color5;
 
 //
 // Description : Array and textureless GLSL 2D simplex noise function.
@@ -246,7 +247,7 @@ void main() {
     // Normalize the final noise from [-1, 1] to [0, 1] for gradient lookup
     finalNoise = finalNoise * 0.5 + 0.5;
     
-    // === STAGE 3: Sample the 4-Color Gradient Using Final Noise ===
+    // === STAGE 3: Sample the 5-Color Gradient Using Final Noise ===
     // We can use the noise value in different ways to sample the gradient
     
     // Option A: Use noise as both X and Y coordinates (circular patterns)
@@ -257,12 +258,37 @@ void main() {
     float gradientX = finalNoise;
     float gradientY = snoise(vec3(warpedCoords * 2.0, timeZ * 2.5) + vec3(500.0, 600.0, 250.0)) * 0.5 + 0.5;
     
-    // Sample the 4-color gradient using bilinear interpolation
-    // u_color1 = top-left (0,0), u_color2 = top-right (1,0)
-    // u_color3 = bottom-right (1,1), u_color4 = bottom-left (0,1)
-    vec3 topColor = mix(u_color1, u_color2, gradientX);
-    vec3 bottomColor = mix(u_color4, u_color3, gradientX);
-    vec3 finalColor = mix(topColor, bottomColor, gradientY);
+    // Sample the 5-color gradient using radial interpolation
+    // Colors arranged: color1, color2, color3, color4, color5 (center)
+    // Create a radial gradient where color5 is at the center
+    float radialDist = length(vec2(gradientX - 0.5, gradientY - 0.5)) * 2.0; // 0 to 1.414
+    
+    // Map radial distance to 5 colors
+    vec3 finalColor;
+    if (radialDist < 0.25) {
+        // Center: mostly color5
+        float t = radialDist / 0.25;
+        finalColor = mix(u_color5, mix(u_color1, u_color2, gradientX), t);
+    } else if (radialDist < 0.5) {
+        // Inner ring: blend between corner colors
+        float t = (radialDist - 0.25) / 0.25;
+        vec3 innerColor = mix(u_color1, u_color2, gradientX);
+        vec3 outerColor = mix(u_color4, u_color3, gradientX);
+        finalColor = mix(innerColor, outerColor, t);
+    } else if (radialDist < 0.75) {
+        // Middle ring: corner colors
+        float t = (radialDist - 0.5) / 0.25;
+        vec3 topColor = mix(u_color1, u_color2, gradientX);
+        vec3 bottomColor = mix(u_color4, u_color3, gradientX);
+        finalColor = mix(topColor, bottomColor, gradientY);
+    } else {
+        // Outer ring: corner colors with color5 influence
+        float t = (radialDist - 0.75) / 0.664; // Normalize to 0-1 for remaining range
+        vec3 topColor = mix(u_color1, u_color2, gradientX);
+        vec3 bottomColor = mix(u_color4, u_color3, gradientX);
+        vec3 cornerColor = mix(topColor, bottomColor, gradientY);
+        finalColor = mix(cornerColor, u_color5, t * 0.3); // Subtle color5 influence
+    }
     
     // Add some dynamic color shifting based on time
     

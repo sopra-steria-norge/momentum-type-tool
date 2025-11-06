@@ -16,8 +16,8 @@
     <!-- Simplex noise library with fallback -->
     <script src="https://cdn.jsdelivr.net/npm/simplex-noise@4.0.1/dist/simplex-noise.min.js"></script>
 
-    <!-- Phosphor Icons for swap button -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Phosphor Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -35,11 +35,7 @@
                 <div class="text-input-wrapper">
                     <textarea id="textInput" placeholder="Type something..." rows="3"></textarea>
                     <button id="historyBtn" class="history-btn" title="Previous texts">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12,6 12,12 16,14"></polyline>
-                        </svg>
+                        <i class="ph ph-clock"></i>
                     </button>
                     <div id="historyDropdown" class="history-dropdown hidden">
                         <div class="history-header">Previous texts</div>
@@ -56,13 +52,13 @@
             <!-- Font Section -->
             <div class="control-section">
                 <div class="section-row">
-                    <button id="fontUploadBtn" class="select-btn">Select font</button>
                     <div class="font-info">
                         <span class="font-label">Recently added font</span>
                         <select id="fontSelect" class="font-dropdown">
                             <option value="default">Inter (default)</option>
                         </select>
                     </div>
+                    <button id="fontUploadBtn" class="select-btn">Select font</button>
                 </div>
                 <input type="file" id="fontFile" accept=".ttf,.otf,.woff" style="display: none;">
             </div>
@@ -76,7 +72,9 @@
                             <div id="bgColorPicker" class="color-swatch"></div>
                             <span>Background</span>
                         </div>
-                        <button id="swapColorsBtn" class="swap-btn" title="Swap colors">⇄</button>
+                        <button id="swapColorsBtn" class="swap-btn" title="Swap colors">
+                            <i class="ph ph-arrows-left-right"></i>
+                        </button>
                         <div class="color-item">
                             <div id="textColorPicker" class="color-swatch"></div>
                             <span>Typography</span>
@@ -90,8 +88,8 @@
                 </div>
 
                 <div class="gradient-colors">
-                    <h4>Color</h4>
-                    <div class="gradient-swatches">
+                    <h4 style="display: none;">Color</h4>
+                    <div class="gradient-swatches" style="display: none;">
                         <div id="colorValue1Picker" class="color-swatch"></div>
                         <div id="colorValue2Picker" class="color-swatch"></div>
                         <div id="colorValue3Picker" class="color-swatch"></div>
@@ -126,14 +124,20 @@
                     </div>
                     <div class="slider-container">
                         <label>Margin</label>
-                        <input type="range" id="marginSlider" min="0" max="1" step="0.01" value="0.0">
+                        <select id="marginDropdown" class="margin-dropdown">
+                            <option value="small">Small</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="large">Large</option>
+                        </select>
                     </div>
                 </div>
             </div>
 
             <!-- Playback Controls -->
             <div class="control-section">
-                <button id="playPauseBtn" class="playback-btn">▶</button>
+                <button id="playPauseBtn" class="playback-btn">
+                    <i class="ph ph-pause" id="playPauseIcon"></i>
+                </button>
             </div>
 
             <!-- Export Section -->
