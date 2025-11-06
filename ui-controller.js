@@ -630,7 +630,7 @@ function getPhaseValue() {
 }
 
 function getAmplitudeValue() {
-    return parseFloat(ampSlider.value) * 400;
+    return parseFloat(ampSlider.value);
 }
 
 function getVerticalOffsetValue() {

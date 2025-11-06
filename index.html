@@ -66,7 +66,7 @@
             <!-- Color Section -->
             <div class="control-section">
                 <h3>Color</h3>
-                <div class="color-group">
+                <div class="color-group" style="display: none;">
                     <div class="color-row">
                         <div class="color-item">
                             <div id="bgColorPicker" class="color-swatch"></div>
@@ -82,7 +82,7 @@
                     </div>
                 </div>
 
-                <div class="checkbox-row">
+                <div class="checkbox-row" style="display: none;">
                     <input type="checkbox" id="shaderModeCheckbox" checked>
                     <label for="shaderModeCheckbox">Gradient background</label>
                 </div>
@@ -172,28 +172,24 @@
             <div class="canvas-container">
                 <canvas id="canvas"></canvas>
                 <canvas id="shader-canvas"></canvas>
+
+                <!-- Video Export Progress UI -->
+                <div id="exportProgress" class="export-progress hidden">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Toast Notifications -->
+                <div id="successToast" class="toast toast-success hidden">
+                    <span id="successMessage"></span>
+                </div>
+
+                <div id="errorToast" class="toast toast-error hidden">
+                    <span id="errorMessage"></span>
+                </div>
             </div>
         </div>
-    </div>
-
-    <!-- Video Export Progress UI -->
-    <div id="exportProgress" class="export-progress hidden">
-        <div class="progress-content">
-            <h3>Exporting Video...</h3>
-            <div class="progress-bar">
-                <div id="progressFill" class="progress-fill"></div>
-            </div>
-            <div id="progressText" class="progress-text">0%</div>
-        </div>
-    </div>
-
-    <!-- Toast Notifications -->
-    <div id="successToast" class="toast toast-success hidden">
-        <span id="successMessage"></span>
-    </div>
-
-    <div id="errorToast" class="toast toast-error hidden">
-        <span id="errorMessage"></span>
     </div>
 
     <script src="font-manager.js"></script>
